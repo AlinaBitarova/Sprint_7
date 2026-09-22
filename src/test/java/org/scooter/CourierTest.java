@@ -1,13 +1,12 @@
 package org.scooter;
 
 import io.qameta.allure.Description;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
+import io.restassured.response.Response;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.restassured.RestAssured.given;
+import static org.apache.http.HttpStatus.*;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 
@@ -18,7 +17,6 @@ public class CourierTest {
 
     @Before
     public void setUp() {
-        RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru/";
         additionalData = new AdditionalData();
         courier = additionalData.getRandomCourier();
     }
@@ -26,31 +24,19 @@ public class CourierTest {
     @Test
     @Description("Check status code of valid courier creation")
     public void testCourierCanBeCreatedWithValidData() {
-        given()
-                .contentType(ContentType.JSON)
-                .body(courier)
-                .when()
-                .post(AdditionalData.COURIER_CREATION_PATH)
-                .then()
-                .statusCode(201)
+        Response response = additionalData.createCourier(courier);
+        response.then()
+                .statusCode(SC_CREATED)
                 .body("ok", equalTo(true));
     }
 
     @Test
     @Description("Check status code of two identical couriers creation")
     public void testCantCreateTwoIdenticalCouriers() {
-        given()
-                .contentType(ContentType.JSON)
-                .body(courier)
-                .post(AdditionalData.COURIER_CREATION_PATH);
-
-        given()
-                .contentType(ContentType.JSON)
-                .body(courier)
-                .when()
-                .post(AdditionalData.COURIER_CREATION_PATH)
-                .then()
-                .statusCode(409)
+        additionalData.createCourier(courier);
+        Response response = additionalData.createCourier(courier);
+        response.then()
+                .statusCode(SC_CONFLICT)
                 .body("message", containsString(AdditionalData.SAME_LOGIN_ERROR));
     }
 
@@ -58,13 +44,9 @@ public class CourierTest {
     @Description("Check status code of invalid courier creation without login")
     public void testCourierCantBeCreatedWithoutLogin() {
         Courier courierWithoutLogin = additionalData.getCourierWithoutLogin();
-        given()
-                .contentType(ContentType.JSON)
-                .body(courierWithoutLogin)
-                .when()
-                .post(AdditionalData.COURIER_CREATION_PATH)
-                .then()
-                .statusCode(400)
+        Response response = additionalData.createCourier(courierWithoutLogin);
+        response.then()
+                .statusCode(SC_BAD_REQUEST)
                 .body("message", containsString(AdditionalData.LACK_DATA_TO_CREATE_COURIER));
     }
 
@@ -72,33 +54,21 @@ public class CourierTest {
     @Description("Check status code of invalid courier creation without password")
     public void testCourierCantBeCreatedWithoutPassword() {
         Courier courierWithoutPassword = additionalData.getCourierWithoutPassword();
-        given()
-                .contentType(ContentType.JSON)
-                .body(courierWithoutPassword)
-                .when()
-                .post(AdditionalData.COURIER_CREATION_PATH)
-                .then()
-                .statusCode(400)
+        Response response = additionalData.createCourier(courierWithoutPassword);
+        response.then()
+                .statusCode(SC_BAD_REQUEST)
                 .body("message", containsString(AdditionalData.LACK_DATA_TO_CREATE_COURIER));
     }
 
     @Test
     @Description("Check status code of invalid courier creation with already existing login")
     public void testCantCreateCourierWithExistingLogin() {
-        given()
-                .contentType(ContentType.JSON)
-                .body(courier)
-                .post(AdditionalData.COURIER_CREATION_PATH);
-
+        additionalData.createCourier(courier);
         Courier identicalLoginCourier = additionalData.getRandomCourier();
         identicalLoginCourier.setLogin(courier.getLogin());
-        given()
-                .contentType(ContentType.JSON)
-                .body(identicalLoginCourier)
-                .when()
-                .post(AdditionalData.COURIER_CREATION_PATH)
-                .then()
-                .statusCode(409)
+        Response response = additionalData.createCourier(identicalLoginCourier);
+        response.then()
+                .statusCode(SC_CONFLICT)
                 .body("message", containsString(AdditionalData.SAME_LOGIN_ERROR));
     }
 

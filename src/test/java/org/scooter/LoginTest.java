@@ -1,14 +1,13 @@
 package org.scooter;
 
 import io.qameta.allure.Description;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
+import io.restassured.response.Response;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import java.util.Map;
 
-import static io.restassured.RestAssured.given;
+import static org.apache.http.HttpStatus.*;
 import static org.hamcrest.CoreMatchers.*;
 
 public class LoginTest {
@@ -18,14 +17,9 @@ public class LoginTest {
 
     @Before
     public void setUp() {
-        RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru/";
         additionalData = new AdditionalData();
         courier = additionalData.getRandomCourier();
-        given()
-                .contentType(ContentType.JSON)
-                .body(courier)
-                .when()
-                .post(AdditionalData.COURIER_CREATION_PATH);
+        additionalData.createCourier(courier);
     }
 
     @Test
@@ -35,13 +29,9 @@ public class LoginTest {
                 "login", courier.getLogin(),
                 "password", courier.getPassword()
         );
-        given()
-                .contentType(ContentType.JSON)
-                .body(credentials)
-                .when()
-                .post(AdditionalData.COURIER_LOGIN_PATH)
-                .then()
-                .statusCode(200)
+        Response response = additionalData.loginCourier(credentials);
+        response.then()
+                .statusCode(SC_OK)
                 .body("id", notNullValue());
     }
 
@@ -51,13 +41,9 @@ public class LoginTest {
         Map<String, String> credentials = Map.of(
                 "password", courier.getPassword()
         );
-        given()
-                .contentType(ContentType.JSON)
-                .body(credentials)
-                .when()
-                .post(AdditionalData.COURIER_LOGIN_PATH)
-                .then()
-                .statusCode(400)
+        Response response = additionalData.loginCourier(credentials);
+        response.then()
+                .statusCode(SC_BAD_REQUEST)
                 .body("message", containsString(AdditionalData.LACK_DATA_TO_LOGIN));
     }
 
@@ -67,13 +53,9 @@ public class LoginTest {
         Map<String, String> credentials = Map.of(
                 "login", courier.getLogin()
         );
-        given()
-                .contentType(ContentType.JSON)
-                .body(credentials)
-                .when()
-                .post(AdditionalData.COURIER_LOGIN_PATH)
-                .then()
-                .statusCode(400)
+        Response response = additionalData.loginCourier(credentials);
+        response.then()
+                .statusCode(SC_BAD_REQUEST)
                 .body("message", containsString(AdditionalData.LACK_DATA_TO_LOGIN));
     }
 
@@ -84,13 +66,9 @@ public class LoginTest {
                 "login", "incorrect_login_654",
                 "password", courier.getPassword()
         );
-        given()
-                .contentType(ContentType.JSON)
-                .body(wrongCredentials)
-                .when()
-                .post(AdditionalData.COURIER_LOGIN_PATH)
-                .then()
-                .statusCode(404)
+        Response response = additionalData.loginCourier(wrongCredentials);
+        response.then()
+                .statusCode(SC_NOT_FOUND)
                 .body("message", containsString(AdditionalData.NO_SUCH_ACCOUNT));
     }
 
@@ -101,13 +79,9 @@ public class LoginTest {
                 "login", courier.getLogin(),
                 "password", "incorrect_password_987"
         );
-        given()
-                .contentType(ContentType.JSON)
-                .body(wrongCredentials)
-                .when()
-                .post(AdditionalData.COURIER_LOGIN_PATH)
-                .then()
-                .statusCode(404)
+        Response response = additionalData.loginCourier(wrongCredentials);
+        response.then()
+                .statusCode(SC_NOT_FOUND)
                 .body("message", containsString(AdditionalData.NO_SUCH_ACCOUNT));
     }
 
@@ -118,13 +92,9 @@ public class LoginTest {
                 "login", "unregistered_login",
                 "password", "unregistered_password"
         );
-        given()
-                .contentType(ContentType.JSON)
-                .body(unregisteredCredentials)
-                .when()
-                .post(AdditionalData.COURIER_LOGIN_PATH)
-                .then()
-                .statusCode(404)
+        Response response = additionalData.loginCourier(unregisteredCredentials);
+        response.then()
+                .statusCode(SC_NOT_FOUND)
                 .body("message", containsString(AdditionalData.NO_SUCH_ACCOUNT));
     }
 

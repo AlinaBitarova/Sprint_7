@@ -1,31 +1,29 @@
 package org.scooter;
 
 import io.qameta.allure.Description;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
+import io.restassured.response.Response;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.restassured.RestAssured.given;
+import static org.apache.http.HttpStatus.*;
 import static org.hamcrest.Matchers.greaterThan;
 
 
 public class OrdersListTest {
 
+    private AdditionalData additionalData;
+
     @Before
     public void setUp() {
-        RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru/";
+        additionalData = new AdditionalData();
     }
 
     @Test
     @Description("Check status code of getting the order list")
     public void testGetOrderList() {
-        given()
-                .contentType(ContentType.JSON)
-                .when()
-                .get(AdditionalData.ORDER_PATH)
-                .then()
-                .statusCode(200)
+        Response response = additionalData.getOrderList();
+        response.then()
+                .statusCode(SC_OK)
                 .body("orders.size()", greaterThan(0));
     }
 }
